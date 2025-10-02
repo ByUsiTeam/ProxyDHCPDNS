@@ -1,0 +1,27 @@
+{
+  "proxy": {
+    "interface": "0.0.0.0",
+    "dhcp_port": 67,
+    "dns_port": 53,
+    "dns_hijack_enabled": true,
+    "auto_detect_proxy_ip": true,
+    "fallback_proxy_ip": "192.168.1.100"
+  },
+  "real_dhcp": {
+    "auto_detect": true,
+    "fallback_ip": "192.168.1.1",
+    "port": 67
+  },
+  "logging": {
+    "log_dir": "./logs",
+    "console_level": "INFO",
+    "file_level": "DEBUG",
+    "max_log_size_mb": 10,
+    "backup_count": 5,
+    "disable_rich_console": true
+  },
+  "dns": {
+    "config_file": "dnsconfig.json",
+    "upstream_dns": "223.5.5.5"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "upstream_dns": "223.5.5.5",
+  "hijack_domains": {
+    "example.com": "127.0.0.1",
+    "test.local": "192.168.1.100"
+  }
+}
