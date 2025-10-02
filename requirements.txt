@@ -3,3 +3,4 @@ aiohttp-jinja2
 jinja2
 psutil
 netifaces
+aiofiles
