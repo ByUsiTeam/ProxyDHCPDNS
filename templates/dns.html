@@ -1,0 +1,401 @@
+{% extends "base.html" %}
+
+{% block title %}DNS管理 - DHCP代理管理系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-globe"></i>
+        DNS管理
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="refreshDNSData()">
+            <i class="bi bi-arrow-clockwise"></i> 刷新
+        </button>
+    </div>
+</div>
+
+<!-- DNS状态卡片 -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-start border-primary border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-xs fw-bold text-primary text-uppercase mb-1">
+                            总查询数
+                        </div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="total-queries">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-search stat-icon text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-start border-warning border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-xs fw-bold text-warning text-uppercase mb-1">
+                            劫持查询
+                        </div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="hijacked-queries">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-shield-exclamation stat-icon text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-start border-success border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-xs fw-bold text-success text-uppercase mb-1">
+                            转发查询
+                        </div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="forwarded-queries">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-arrow-left-right stat-icon text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-start border-info border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-xs fw-bold text-info text-uppercase mb-1">
+                            劫持规则
+                        </div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="hijack-rules-count">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-list-check stat-icon text-info"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- DNS劫持规则管理 -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-shield-exclamation"></i> DNS劫持规则
+                </h5>
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addRuleModal">
+                    <i class="bi bi-plus-circle"></i> 添加规则
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>域名</th>
+                                <th>目标IP</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dnsRulesTable">
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-3">
+                                    <i class="bi bi-hourglass-split"></i><br>
+                                    加载中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DNS统计图表 -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-pie-chart"></i> DNS查询统计
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="dnsStatsChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- DNS配置 -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-gear"></i> DNS配置
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">上游DNS服务器</label>
+                            <input type="text" class="form-control" id="upstream-dns" value="223.5.5.5">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">DNS劫持功能</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="dns-hijack-enabled" checked>
+                                <label class="form-check-label" for="dns-hijack-enabled">启用DNS劫持</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="saveDNSConfig()">
+                    <i class="bi bi-check-circle"></i> 保存配置
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加规则模态框 -->
+<div class="modal fade" id="addRuleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加DNS劫持规则</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">域名</label>
+                    <input type="text" class="form-control" id="new-domain" placeholder="例如: example.com">
+                    <div class="form-text">支持子域名匹配，如 .example.com 会匹配所有子域名</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">目标IP地址</label>
+                    <input type="text" class="form-control" id="new-ip" placeholder="例如: 127.0.0.1">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="addDNSRule()">添加规则</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let dnsChart = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    refreshDNSData();
+    setInterval(refreshDNSData, 5000);
+});
+
+async function refreshDNSData() {
+    try {
+        const response = await fetch('/api/dns-stats');
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error);
+        }
+        
+        updateDNSStats(data);
+        updateDNSRules(data.hijack_rules);
+        
+    } catch (error) {
+        console.error('获取DNS数据失败:', error);
+    }
+}
+
+function updateDNSStats(data) {
+    // 更新统计卡片
+    document.getElementById('total-queries').textContent = data.dns_stats.total_queries;
+    document.getElementById('hijacked-queries').textContent = data.dns_stats.hijacked_queries;
+    document.getElementById('forwarded-queries').textContent = data.dns_stats.forwarded_queries;
+    document.getElementById('hijack-rules-count').textContent = Object.keys(data.hijack_rules).length;
+    
+    // 更新配置
+    document.getElementById('upstream-dns').value = data.upstream_dns;
+    document.getElementById('dns-hijack-enabled').checked = data.enabled;
+    
+    // 更新图表
+    updateDNSChart(data.dns_stats);
+}
+
+function updateDNSChart(stats) {
+    const ctx = document.getElementById('dnsStatsChart').getContext('2d');
+    
+    if (dnsChart) {
+        dnsChart.destroy();
+    }
+    
+    const total = stats.total_queries || 1;
+    const hijacked = stats.hijacked_queries || 0;
+    const forwarded = stats.forwarded_queries || 0;
+    
+    dnsChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['劫持查询', '转发查询'],
+            datasets: [{
+                data: [hijacked, forwarded],
+                backgroundColor: [
+                    'rgba(255, 159, 64, 0.8)',
+                    'rgba(75, 192, 192, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(255, 159, 64, 1)',
+                    'rgba(75, 192, 192, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateDNSRules(rules) {
+    const table = document.getElementById('dnsRulesTable');
+    
+    if (Object.keys(rules).length === 0) {
+        table.innerHTML = `
+            <tr>
+                <td colspan="3" class="text-center text-muted py-3">
+                    <i class="bi bi-shield-slash"></i><br>
+                    暂无劫持规则
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    table.innerHTML = Object.entries(rules).map(([domain, ip]) => `
+        <tr>
+            <td><code>${domain}</code></td>
+            <td><code>${ip}</code></td>
+            <td>
+                <button class="btn btn-sm btn-outline-danger" onclick="removeDNSRule('${domain}')">
+                    <i class="bi bi-trash"></i> 删除
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function addDNSRule() {
+    const domain = document.getElementById('new-domain').value.trim();
+    const ip = document.getElementById('new-ip').value.trim();
+    
+    if (!domain || !ip) {
+        alert('请填写域名和IP地址');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/dns-rules', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'add',
+                domain: domain,
+                ip: ip
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // 关闭模态框并刷新数据
+            bootstrap.Modal.getInstance(document.getElementById('addRuleModal')).hide();
+            document.getElementById('new-domain').value = '';
+            document.getElementById('new-ip').value = '';
+            refreshDNSData();
+        } else {
+            alert('添加失败: ' + data.error);
+        }
+        
+    } catch (error) {
+        console.error('添加DNS规则失败:', error);
+        alert('添加失败: ' + error.message);
+    }
+}
+
+async function removeDNSRule(domain) {
+    if (!confirm(`确定要删除规则 "${domain}" 吗？`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/dns-rules', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'remove',
+                domain: domain
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            refreshDNSData();
+        } else {
+            alert('删除失败: ' + data.error);
+        }
+        
+    } catch (error) {
+        console.error('删除DNS规则失败:', error);
+        alert('删除失败: ' + error.message);
+    }
+}
+
+async function saveDNSConfig() {
+    // 这里可以实现保存DNS配置的逻辑
+    alert('DNS配置保存功能正在开发中...');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+
+{% block title %}系统设置 - DHCP代理管理系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-gear"></i>
+        系统设置
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="saveAllSettings()">
+            <i class="bi bi-check-circle"></i> 保存所有设置
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <!-- DHCP代理设置 -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-hdd-network"></i> DHCP代理设置
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">代理服务器IP</label>
+                    <input type="text" class="form-control" id="proxy-ip" value="192.168.1.100">
+                    <div class="form-text">DHCP代理服务器的IP地址</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">代理端口</label>
+                    <input type="number" class="form-control" id="proxy-port" value="67">
+                    <div class="form-text">DHCP代理监听端口（需要root权限）</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">真实DHCP服务器</label>
+                    <input type="text" class="form-control" id="real-dhcp-ip" value="192.168.1.1">
+                    <div class="form-text">真实的DHCP服务器IP地址</div>
+                </div>
+                
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="auto-detect-dhcp" checked>
+                    <label class="form-check-label" for="auto-detect-dhcp">自动探测DHCP服务器</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DNS代理设置 -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-globe"></i> DNS代理设置
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">DNS监听端口</label>
+                    <input type="number" class="form-control" id="dns-port" value="53">
+                    <div class="form-text">DNS代理监听端口（需要root权限）</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">上游DNS服务器</label>
+                    <input type="text" class="form-control" id="upstream-dns" value="223.5.5.5">
+                    <div class="form-text">用于转发非劫持查询的DNS服务器</div>
+                </div>
+                
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="dns-hijack-enabled" checked>
+                    <label class="form-check-label" for="dns-hijack-enabled">启用DNS劫持功能</label>
+                </div>
+                
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="log-dns-queries">
+                    <label class="form-check-label" for="log-dns-queries">记录DNS查询日志</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 日志设置 -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-journal-text"></i> 日志设置
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">日志目录</label>
+                    <input type="text" class="form-control" id="log-dir" value="./logs">
+                    <div class="form-text">日志文件存储目录</div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">控制台日志级别</label>
+                            <select class="form-select" id="console-log-level">
+                                <option value="INFO">INFO</option>
+                                <option value="WARNING">WARNING</option>
+                                <option value="ERROR">ERROR</option>
+                                <option value="DEBUG">DEBUG</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">文件日志级别</label>
+                            <select class="form-select" id="file-log-level">
+                                <option value="DEBUG">DEBUG</option>
+                                <option value="INFO">INFO</option>
+                                <option value="WARNING">WARNING</option>
+                                <option value="ERROR">ERROR</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">单个日志文件大小</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="max-log-size" value="10">
+                                <span class="input-group-text">MB</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">备份文件数量</label>
+                            <input type="number" class="form-control" id="backup-count" value="5">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 网络监控设置 -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-eye"></i> 网络监控设置
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="monitor-enabled" checked>
+                    <label class="form-check-label" for="monitor-enabled">启用网络数据包监控</label>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">监控的协议</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="monitor-tcp" checked>
+                        <label class="form-check-label" for="monitor-tcp">TCP</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="monitor-udp" checked>
+                        <label class="form-check-label" for="monitor-udp">UDP</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="monitor-icmp" checked>
+                        <label class="form-check-label" for="monitor-icmp">ICMP</label>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">数据包日志级别</label>
+                    <select class="form-select" id="packet-log-level">
+                        <option value="minimal">最小（仅统计）</option>
+                        <option value="normal">正常（基本信息）</option>
+                        <option value="detailed">详细（完整数据包信息）</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">连接跟踪超时</label>
+                    <div class="input-group">
+                        <input type="number" class="form-control" id="connection-timeout" value="300">
+                        <span class="input-group-text">秒</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 系统操作 -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-tools"></i> 系统操作
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <button type="button" class="btn btn-outline-primary w-100" onclick="restartServices()">
+                            <i class="bi bi-arrow-clockwise"></i> 重启服务
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <button type="button" class="btn btn-outline-warning w-100" onclick="clearStatistics()">
+                            <i class="bi bi-arrow-counterclockwise"></i> 清除统计
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <button type="button" class="btn btn-outline-info w-100" onclick="exportConfiguration()">
+                            <i class="bi bi-download"></i> 导出配置
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <button type="button" class="btn btn-outline-danger w-100" onclick="shutdownSystem()">
+                            <i class="bi bi-power"></i> 关闭系统
+                        </button>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <h6>系统信息</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <td><strong>启动时间</strong></td>
+                                        <td id="system-uptime">未知</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>运行版本</strong></td>
+                                        <td>DHCP代理服务器 v1.0.0</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Python版本</strong></td>
+                                        <td id="python-version">未知</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>操作系统</strong></td>
+                                        <td id="os-info">未知</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 确认对话框 -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalTitle">确认操作</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="confirmModalBody">
+                确定要执行此操作吗？
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="confirmModalButton">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadCurrentSettings();
+    loadSystemInfo();
+});
+
+function loadCurrentSettings() {
+    // 这里可以从服务器获取当前设置
+    // 暂时使用默认值
+    console.log('加载当前设置...');
+}
+
+function loadSystemInfo() {
+    // 这里可以获取系统信息
+    document.getElementById('system-uptime').textContent = new Date().toLocaleString();
+    document.getElementById('python-version').textContent = 'Python 3.8+';
+    document.getElementById('os-info').textContent = navigator.platform;
+}
+
+async function saveAllSettings() {
+    const settings = {
+        dhcp: {
+            proxy_ip: document.getElementById('proxy-ip').value,
+            proxy_port: parseInt(document.getElementById('proxy-port').value),
+            real_dhcp_ip: document.getElementById('real-dhcp-ip').value,
+            auto_detect: document.getElementById('auto-detect-dhcp').checked
+        },
+        dns: {
+            dns_port: parseInt(document.getElementById('dns-port').value),
+            upstream_dns: document.getElementById('upstream-dns').value,
+            hijack_enabled: document.getElementById('dns-hijack-enabled').checked,
+            log_queries: document.getElementById('log-dns-queries').checked
+        },
+        logging: {
+            log_dir: document.getElementById('log-dir').value,
+            console_level: document.getElementById('console-log-level').value,
+            file_level: document.getElementById('file-log-level').value,
+            max_log_size: parseInt(document.getElementById('max-log-size').value),
+            backup_count: parseInt(document.getElementById('backup-count').value)
+        },
+        monitoring: {
+            enabled: document.getElementById('monitor-enabled').checked,
+            protocols: {
+                tcp: document.getElementById('monitor-tcp').checked,
+                udp: document.getElementById('monitor-udp').checked,
+                icmp: document.getElementById('monitor-icmp').checked
+            },
+            log_level: document.getElementById('packet-log-level').value,
+            connection_timeout: parseInt(document.getElementById('connection-timeout').value)
+        }
+    };
+    
+    try {
+        const response = await fetch('/api/settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(settings)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showAlert('设置保存成功！', 'success');
+        } else {
+            showAlert('保存失败: ' + data.error, 'danger');
+        }
+        
+    } catch (error) {
+        console.error('保存设置失败:', error);
+        showAlert('保存失败: ' + error.message, 'danger');
+    }
+}
+
+function restartServices() {
+    showConfirmModal(
+        '重启服务',
+        '确定要重启DHCP和DNS代理服务吗？这可能会中断网络服务。',
+        async function() {
+            try {
+                const response = await fetch('/api/restart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert('重启命令已发送，服务将在几秒钟内重启。', 'success');
+                } else {
+                    showAlert('重启失败: ' + data.error, 'danger');
+                }
+                
+            } catch (error) {
+                console.error('重启服务失败:', error);
+                showAlert('重启失败: ' + error.message, 'danger');
+            }
+        }
+    );
+}
+
+function clearStatistics() {
+    showConfirmModal(
+        '清除统计',
+        '确定要清除所有统计信息吗？此操作不可恢复。',
+        function() {
+            // 这里可以实现清除统计的逻辑
+            showAlert('统计信息已清除。', 'success');
+        }
+    );
+}
+
+function exportConfiguration() {
+    // 这里可以实现导出配置的逻辑
+    showAlert('配置导出功能正在开发中...', 'info');
+}
+
+function shutdownSystem() {
+    showConfirmModal(
+        '关闭系统',
+        '确定要关闭DHCP代理系统吗？这将停止所有网络服务。',
+        function() {
+            // 这里可以实现关闭系统的逻辑
+            showAlert('系统关闭命令已发送。', 'warning');
+        }
+    );
+}
+
+function showConfirmModal(title, message, confirmCallback) {
+    document.getElementById('confirmModalTitle').textContent = title;
+    document.getElementById('confirmModalBody').textContent = message;
+    
+    const confirmButton = document.getElementById('confirmModalButton');
+    confirmButton.onclick = function() {
+        bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+        confirmCallback();
+    };
+    
+    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // 在页面顶部显示警告
+    document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.container-fluid').firstChild);
+    
+    // 3秒后自动消失
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

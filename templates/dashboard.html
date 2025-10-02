@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+
+{% block title %}仪表板 - DHCP代理管理系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-speedometer2"></i>
+        系统仪表板
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshData()">
+                <i class="bi bi-arrow-clockwise"></i> 刷新
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 系统状态卡片 -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-start border-primary border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-xs fw-bold text-primary text-uppercase mb-1">
+                            DHCP客户端
+                        </div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="client-count">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-pc-display stat-icon text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-start border-success border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-xs fw-bold text-success text-uppercase mb-1">
+                            运行时间
+                        </div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="running-time">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-clock stat-icon text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-start border-warning border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-xs fw-bold text-warning text-uppercase mb-1">
+                            DNS劫持规则
+                        </div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="dns-rules-count">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-globe stat-icon text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-start border-info border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-xs fw-bold text-info text-uppercase mb-1">
+                            总请求数
+                        </div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="total-requests">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-graph-up stat-icon text-info"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 系统资源使用情况 -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-cpu"></i> 系统资源
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">CPU使用率</label>
+                    <div class="progress progress-thin mb-2">
+                        <div id="cpu-progress" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <small id="cpu-text" class="text-muted">0%</small>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">内存使用</label>
+                    <div class="progress progress-thin mb-2">
+                        <div id="memory-progress" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <small id="memory-text" class="text-muted">0 MB / 0 MB (0%)</small>
+                </div>
+                
+                <div>
+                    <label class="form-label">磁盘使用</label>
+                    <div class="progress progress-thin mb-2">
+                        <div id="disk-progress" class="progress-bar bg-info" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <small id="disk-text" class="text-muted">0 GB / 0 GB (0%)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DHCP统计 -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-hdd-network"></i> DHCP统计
+                </h6>
+            </div>
+            <div class="card-body">
+                <canvas id="dhcpStatsChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 最近活动客户端 -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-activity"></i> 最近活动客户端
+                </h6>
+                <small class="text-muted">最近5分钟</small>
+            </div>
+            <div class="card-body">
+                <div id="recent-clients" class="list-group list-group-flush">
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-hourglass-split"></i><br>
+                        加载中...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统日志摘要 -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="bi bi-journal-text"></i> 最新日志
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="recent-logs" class="list-group list-group-flush">
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-hourglass-split"></i><br>
+                        加载中...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let dhcpChart = null;
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    refreshData();
+    setInterval(refreshData, 5000); // 每5秒刷新一次
+});
+
+async function refreshData() {
+    try {
+        // 获取统计信息
+        const statsResponse = await fetch('/api/stats');
+        const statsData = await statsResponse.json();
+        
+        if (!statsResponse.ok) {
+            throw new Error(statsData.error);
+        }
+        
+        updateDashboard(statsData);
+        
+        // 获取客户端列表
+        const clientsResponse = await fetch('/api/clients');
+        const clientsData = await clientsResponse.json();
+        
+        if (clientsResponse.ok) {
+            updateRecentClients(clientsData.clients);
+        }
+        
+        // 获取最新日志
+        const logsResponse = await fetch('/api/logs');
+        const logsData = await logsResponse.json();
+        
+        if (logsResponse.ok) {
+            updateRecentLogs(logsData.logs);
+        }
+        
+    } catch (error) {
+        console.error('刷新数据失败:', error);
+    }
+}
+
+function updateDashboard(data) {
+    // 更新基础统计
+    document.getElementById('client-count').textContent = data.client_count;
+    document.getElementById('running-time').textContent = data.running_time;
+    document.getElementById('total-requests').textContent = data.dhcp_stats.client_requests;
+    
+    // 更新DNS规则数量
+    if (data.dns_rules_count !== undefined) {
+        document.getElementById('dns-rules-count').textContent = data.dns_rules_count;
+    }
+    
+    // 更新系统资源
+    if (data.system_stats) {
+        const sys = data.system_stats;
+        
+        // CPU
+        const cpuProgress = document.getElementById('cpu-progress');
+        const cpuText = document.getElementById('cpu-text');
+        cpuProgress.style.width = `${sys.cpu_percent}%`;
+        cpuText.textContent = `${sys.cpu_percent}%`;
+        
+        // 内存
+        const memoryProgress = document.getElementById('memory-progress');
+        const memoryText = document.getElementById('memory-text');
+        const memoryUsedMB = (sys.memory_used / 1024 / 1024).toFixed(1);
+        const memoryTotalMB = (sys.memory_total / 1024 / 1024).toFixed(1);
+        memoryProgress.style.width = `${sys.memory_percent}%`;
+        memoryText.textContent = `${memoryUsedMB} MB / ${memoryTotalMB} MB (${sys.memory_percent}%)`;
+        
+        // 磁盘
+        const diskProgress = document.getElementById('disk-progress');
+        const diskText = document.getElementById('disk-text');
+        const diskUsedGB = (sys.disk_used / 1024 / 1024 / 1024).toFixed(1);
+        const diskTotalGB = (sys.disk_total / 1024 / 1024 / 1024).toFixed(1);
+        diskProgress.style.width = `${sys.disk_percent}%`;
+        diskText.textContent = `${diskUsedGB} GB / ${diskTotalGB} GB (${sys.disk_percent}%)`;
+    }
+    
+    // 更新DHCP统计图表
+    updateDhcpChart(data.dhcp_stats);
+}
+
+function updateDhcpChart(stats) {
+    const ctx = document.getElementById('dhcpStatsChart').getContext('2d');
+    
+    if (dhcpChart) {
+        dhcpChart.destroy();
+    }
+    
+    dhcpChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['客户端请求', '转发到真实', '真实响应', '修改响应'],
+            datasets: [{
+                label: '请求数量',
+                data: [
+                    stats.client_requests,
+                    stats.proxy_to_real,
+                    stats.real_to_proxy,
+                    stats.modified_responses
+                ],
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(255, 206, 86, 0.8)',
+                    'rgba(153, 102, 255, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(153, 102, 255, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function updateRecentClients(clients) {
+    const container = document.getElementById('recent-clients');
+    const now = Math.floor(Date.now() / 1000);
+    const fiveMinutesAgo = now - 300;
+    
+    // 过滤最近5分钟活动的客户端
+    const recentClients = clients.filter(client => client.last_seen > fiveMinutesAgo)
+                                .sort((a, b) => b.last_seen - a.last_seen)
+                                .slice(0, 5);
+    
+    if (recentClients.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-3">
+                <i class="bi bi-wifi-off"></i><br>
+                最近5分钟无活动客户端
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = recentClients.map(client => `
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <span class="client-status status-online"></span>
+                <strong>${client.mac_address}</strong>
+                <br>
+                <small class="text-muted">${client.ip_address}</small>
+            </div>
+            <span class="badge bg-primary rounded-pill">${client.state}</span>
+        </div>
+    `).join('');
+}
+
+function updateRecentLogs(logs) {
+    const container = document.getElementById('recent-logs');
+    
+    if (logs.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-3">
+                <i class="bi bi-file-earmark-text"></i><br>
+                暂无日志
+            </div>
+        `;
+        return;
+    }
+    
+    // 取最后5条日志
+    const recentLogs = logs.slice(-5).reverse();
+    
+    container.innerHTML = recentLogs.map(log => {
+        const levelClass = `log-level-${log.level.toLowerCase()}`;
+        return `
+            <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between">
+                    <small class="${levelClass}">${log.level}</small>
+                    <small class="text-muted">${log.timestamp}</small>
+                </div>
+                <p class="mb-1 small">${log.message}</p>
+            </div>
+        `;
+    }).join('');
+}
+</script>
+{% endblock %}

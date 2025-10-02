@@ -1,0 +1,390 @@
+{% extends "base.html" %}
+
+{% block title %}网络监控 - DHCP代理管理系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-diagram-3"></i>
+        网络监控
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="refreshNetworkData()">
+            <i class="bi bi-arrow-clockwise"></i> 刷新
+        </button>
+    </div>
+</div>
+
+<!-- 网络状态卡片 -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-start border-primary border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-xs fw-bold text-primary text-uppercase mb-1">
+                            发送数据
+                        </div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="bytes-sent">0 B</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-upload stat-icon text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-start border-success border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-xs fw-bold text-success text-uppercase mb-1">
+                            接收数据
+                        </div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="bytes-recv">0 B</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-download stat-icon text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-start border-warning border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-xs fw-bold text-warning text-uppercase mb-1">
+                            发送包数
+                        </div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="packets-sent">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-send stat-icon text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card border-start border-info border-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="text-xs fw-bold text-info text-uppercase mb-1">
+                            接收包数
+                        </div>
+                        <div class="h5 mb-0 fw-bold text-gray-800" id="packets-recv">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-envelope stat-icon text-info"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 网络流量图表 -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-graph-up"></i> 网络流量监控
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="networkTrafficChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 网络接口信息 -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-hdd-network"></i> 网络接口
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="networkInterfaces">
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-hourglass-split"></i><br>
+                        加载中...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 活动连接 -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-link-45deg"></i> 活动网络连接
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>本地地址</th>
+                                <th>远程地址</th>
+                                <th>状态</th>
+                                <th>进程ID</th>
+                                <th>协议</th>
+                            </tr>
+                        </thead>
+                        <tbody id="networkConnections">
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-3">
+                                    <i class="bi bi-hourglass-split"></i><br>
+                                    加载中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 路由监控设置 -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-eye"></i> 路由监控设置
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="monitor-tcp" checked>
+                            <label class="form-check-label" for="monitor-tcp">监控TCP数据包</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="monitor-udp" checked>
+                            <label class="form-check-label" for="monitor-udp">监控UDP数据包</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="monitor-icmp" checked>
+                            <label class="form-check-label" for="monitor-icmp">监控ICMP数据包</label>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="saveMonitorSettings()">
+                    <i class="bi bi-check-circle"></i> 保存设置
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let trafficChart = null;
+let trafficData = {
+    labels: [],
+    sent: [],
+    recv: []
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    refreshNetworkData();
+    setInterval(refreshNetworkData, 3000); // 每3秒刷新网络数据
+});
+
+async function refreshNetworkData() {
+    try {
+        const response = await fetch('/api/network-info');
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error);
+        }
+        
+        updateNetworkStats(data);
+        updateNetworkInterfaces(data.interfaces);
+        updateNetworkConnections(data.connections);
+        
+    } catch (error) {
+        console.error('获取网络数据失败:', error);
+    }
+}
+
+function updateNetworkStats(data) {
+    // 更新统计卡片
+    document.getElementById('bytes-sent').textContent = formatBytes(data.traffic.bytes_sent);
+    document.getElementById('bytes-recv').textContent = formatBytes(data.traffic.bytes_recv);
+    document.getElementById('packets-sent').textContent = data.traffic.packets_sent.toLocaleString();
+    document.getElementById('packets-recv').textContent = data.traffic.packets_recv.toLocaleString();
+    
+    // 更新流量图表
+    updateTrafficChart(data.traffic);
+}
+
+function updateTrafficChart(traffic) {
+    const now = new Date().toLocaleTimeString();
+    
+    // 添加到数据数组
+    trafficData.labels.push(now);
+    trafficData.sent.push(traffic.bytes_sent);
+    trafficData.recv.push(traffic.bytes_recv);
+    
+    // 保持最近20个数据点
+    if (trafficData.labels.length > 20) {
+        trafficData.labels.shift();
+        trafficData.sent.shift();
+        trafficData.recv.shift();
+    }
+    
+    const ctx = document.getElementById('networkTrafficChart').getContext('2d');
+    
+    if (trafficChart) {
+        trafficChart.destroy();
+    }
+    
+    trafficChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: trafficData.labels,
+            datasets: [
+                {
+                    label: '发送流量',
+                    data: trafficData.sent,
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: '接收流量',
+                    data: trafficData.recv,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return formatBytes(value);
+                        }
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+}
+
+function updateNetworkInterfaces(interfaces) {
+    const container = document.getElementById('networkInterfaces');
+    
+    if (interfaces.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-3">
+                <i class="bi bi-wifi-off"></i><br>
+                未找到网络接口
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = interfaces.map(iface => `
+        <div class="card mb-2">
+            <div class="card-body py-2">
+                <h6 class="card-title mb-1">
+                    <i class="bi bi-ethernet"></i> ${iface.name}
+                </h6>
+                <p class="card-text mb-1">
+                    <small class="text-muted">IP: ${iface.ip}</small><br>
+                    <small class="text-muted">掩码: ${iface.netmask}</small>
+                </p>
+            </div>
+        </div>
+    `).join('');
+}
+
+function updateNetworkConnections(connections) {
+    const tbody = document.getElementById('networkConnections');
+    
+    if (connections.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-muted py-3">
+                    <i class="bi bi-wifi-off"></i><br>
+                    暂无活动连接
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = connections.map(conn => `
+        <tr>
+            <td><code>${conn.local_addr}</code></td>
+            <td><code>${conn.remote_addr}</code></td>
+            <td>
+                <span class="badge bg-success">${conn.status}</span>
+            </td>
+            <td>${conn.pid || 'N/A'}</td>
+            <td>
+                <span class="badge bg-info">TCP</span>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function saveMonitorSettings() {
+    const tcpEnabled = document.getElementById('monitor-tcp').checked;
+    const udpEnabled = document.getElementById('monitor-udp').checked;
+    const icmpEnabled = document.getElementById('monitor-icmp').checked;
+    
+    // 这里可以实现保存监控设置的逻辑
+    alert(`监控设置已更新:
+    TCP: ${tcpEnabled ? '启用' : '禁用'}
+    UDP: ${udpEnabled ? '启用' : '禁用'}
+    ICMP: ${icmpEnabled ? '启用' : '禁用'}`);
+}
+</script>
+{% endblock %}

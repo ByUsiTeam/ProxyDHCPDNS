@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}客户端管理 - DHCP代理管理系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-pc-display"></i>
+        客户端管理
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="refreshClients()">
+            <i class="bi bi-arrow-clockwise"></i> 刷新
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-list-ul"></i> 客户端列表
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="clientsTable">
+                <thead>
+                    <tr>
+                        <th>MAC地址</th>
+                        <th>IP地址</th>
+                        <th>主机名</th>
+                        <th>状态</th>
+                        <th>租约时间</th>
+                        <th>最后活跃</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="clientsTableBody">
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-3">
+                            <i class="bi bi-hourglass-split"></i><br>
+                            加载中...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    refreshClients();
+    setInterval(refreshClients, 10000); // 每10秒刷新一次
+});
+
+async function refreshClients() {
+    try {
+        const response = await fetch('/api/clients');
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error);
+        }
+        
+        updateClientsTable(data.clients);
+        
+    } catch (error) {
+        console.error('获取客户端列表失败:', error);
+        document.getElementById('clientsTableBody').innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center text-danger py-3">
+                    <i class="bi bi-exclamation-triangle"></i><br>
+                    加载失败: ${error.message}
+                </td>
+            </tr>
+        `;
+    }
+}
+
+function updateClientsTable(clients) {
+    const tbody = document.getElementById('clientsTableBody');
+    
+    if (clients.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center text-muted py-3">
+                    <i class="bi bi-wifi-off"></i><br>
+                    暂无客户端
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = clients.map(client => {
+        const statusClass = getStatusClass(client.state);
+        const lastSeen = formatTimestamp(client.last_seen);
+        const leaseTime = formatLeaseTime(client.lease_time);
+        
+        return `
+            <tr>
+                <td><code>${client.mac_address}</code></td>
+                <td>${client.ip_address}</td>
+                <td>${client.hostname || '<span class="text-muted">未知</span>'}</td>
+                <td>
+                    <span class="badge ${statusClass}">${client.state}</span>
+                </td>
+                <td>${leaseTime}</td>
+                <td>${lastSeen}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewClientDetails('${client.mac_address}')">
+                        <i class="bi bi-info-circle"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function getStatusClass(status) {
+    const statusClasses = {
+        'acknowledged': 'bg-success',
+        'offered': 'bg-warning',
+        'discovering': 'bg-info',
+        'forwarding': 'bg-primary',
+        'rejected': 'bg-danger'
+    };
+    return statusClasses[status] || 'bg-secondary';
+}
+
+function formatTimestamp(timestamp) {
+    if (!timestamp) return '从未';
+    
+    const now = Math.floor(Date.now() / 1000);
+    const diff = now - timestamp;
+    
+    if (diff < 60) return '刚刚';
+    if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`;
+    return `${Math.floor(diff / 86400)} 天前`;
+}
+
+function formatLeaseTime(seconds) {
+    if (!seconds) return '未知';
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+        return `${hours} 小时 ${minutes} 分钟`;
+    }
+    return `${minutes} 分钟`;
+}
+
+function viewClientDetails(macAddress) {
+    alert(`查看客户端详情: ${macAddress}\n\n此功能正在开发中...`);
+}
+</script>
+{% endblock %}
